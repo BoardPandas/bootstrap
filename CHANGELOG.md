@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.3] - 2026-11-16
+
+### Fixed
+- **Format-on-edit works on Windows.** `.claude/scripts/post-edit-format.sh` compared the repo root and the edited file in two different path spellings under Git Bash (`/c/...` or `/tmp/...` from `pwd -P` against `C:/...` from `readlink -f`), so no file ever counted as inside the repo and nothing was formatted. Both sides now go through `cygpath -m` first (a no-op off Windows); files outside the repo are still refused. Repos synced from this template pick the fix up on their next template sync.
+
 ## [0.29.2] - 2026-11-11
 
 ### Changed
@@ -319,7 +324,8 @@ knowing the solution.
 
 Older releases are in [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
-[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.1...HEAD
+[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.3...HEAD
+[0.29.3]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.2...v0.29.3
 [0.29.1]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.28.1...v0.29.0
 [0.28.1]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.28.0...v0.28.1
