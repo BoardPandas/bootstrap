@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.4] - 2026-11-21
+
+### Added
+- Dependabot version updates: weekly pull requests for github-actions, npm dependencies, with minor and patch updates grouped into one pull request per ecosystem. Dependabot alerts and security updates are enabled in the repository settings.
+
 ## [0.29.3] - 2026-11-16
 
 ### Fixed
@@ -324,7 +329,8 @@ knowing the solution.
 
 Older releases are in [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
-[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.3...HEAD
+[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.4...HEAD
+[0.29.4]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.3...v0.29.4
 [0.29.3]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.2...v0.29.3
 [0.29.1]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.28.1...v0.29.0
