@@ -96,9 +96,9 @@ Autonomous code changes are only appropriate for the first row. Dispatching a bu
 
 ## Step 4: Dispatch one builder subagent per unit
 
-Call the **Agent** tool with `subagent_type: "builder"` **and `isolation: "worktree"` on the call itself** — once per unit, **all in a single message** so they run concurrently. Pass `isolation` even though the builder definition already declares it. With agent teams enabled (this template sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`), an Agent call that carries a `name` launches a teammate unless the call passes `isolation`, and a teammate does not inherit the definition's `isolation: worktree`. Without it, the builders share one checkout and clobber each other's edits.
+Call the **Agent** tool with `subagent_type: "builder"` **and `isolation: "worktree"` on the call itself** — once per unit, **all in a single message** so they run concurrently. Pass `isolation` even though the builder definition already declares it. With agent teams enabled (this template sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`), an Agent call that carries a `name` launches a teammate unless the call passes `isolation`, and a teammate does not inherit the definition's `isolation: worktree`. Without it, the builders share one checkout and clobber each other's edits. (In Antigravity, call `invoke_subagent` with `TypeName: "builder"` and `Workspace: "branch"`, and record each returned `conversationId` for `send_message`.)
 
-Give each agent a `name` derived from the issue numbers (e.g. `issue-283-290`) so you can address it later with SendMessage.
+Give each agent a `name` derived from the issue numbers (e.g. `issue-283-290`) so you can address it later with SendMessage (or use its returned `conversationId` in Antigravity).
 
 Each `prompt` must be **fully self-contained** — the subagent has no memory of this conversation. Include:
 
@@ -208,7 +208,7 @@ Then for each unit that reported `STATUS: RESOLVED`:
    git commit -F "$SCRATCHPAD/commit-msg.txt"
    # then delete that file
    ```
-   Reference the issues in the message body (`Closes #283, #290`) and end with the `Co-Authored-By: Claude` trailer.
+   Reference the issues in the message body (`Closes #283, #290`) and end with the dynamic `Co-Authored-By: {Agent} {Model}` trailer (e.g., `Co-Authored-By: Gemini 4 Neon`, `Co-Authored-By: Claude Opus 5.5`, `Co-Authored-By: Codex GPT-6 Sol`).
 5. **Push the explicit ref:**
    ```bash
    git push origin HEAD:<main>
@@ -231,7 +231,7 @@ Then for each unit that reported `STATUS: RESOLVED`:
 
 A unit that fails verification on the merged tree goes back to the builder that produced it, alone. Units that passed are never re-dispatched: their next version would be different, not better, and each would need re-verifying.
 
-1. **Resume that builder with SendMessage**, addressed by the `name` you gave it in Step 4, with this message:
+1. **Resume that builder with SendMessage**, addressed by the `name` you gave it in Step 4 (or the returned `conversationId` via `send_message` in Antigravity), with this message:
    ```
    UNIT      issue(s) <numbers>, branch <branch>, worktree <path>
    VERDICT   red: failed verification after merging into <main>

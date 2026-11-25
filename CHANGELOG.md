@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-11-25
+
+### Added
+- **Mechanical `permissions.deny` enforcement in Antigravity.** `.agents/hooks.json` now wires `PreToolUse --enforce-deny` for `run_command`, file write/edit, and file read tools so `.claude/settings.json` credential, sensitive-file, and dangerous-command deny rules are enforced mechanically rather than by prose alone.
+- **Wiring guard checks for Antigravity hooks (Check 13).** `scripts/check-claude-wiring.mjs` now rejects POSIX `$(...)`/backtick command substitution in `.agents/hooks.json` (which silently fails open under Windows `cmd /c`) and rejects legacy-only file-tool matchers missing `write_file` or `edit_file`.
+- **Dynamic commit attribution across runtimes.** `.claude/rules/commit-changelog.md` and `/triage-issues` now standardize on a dynamic `Co-Authored-By: {Agent} {Model}` trailer (e.g. `Gemini 4 Neon`, `Claude Opus 5.5`, `Codex GPT-6 Sol`) instead of hardcoding `Claude`.
+- **Official Antigravity sources in `.claude/references/source-urls.md`.** Adds living Antigravity docs and changelog URLs so `update-practices` tracks Antigravity schema changes alongside Claude Code.
+
+### Changed
+- **Gemini/Antigravity subagent model routing and `skills:` forwarding.** `scripts/antigravity-format.mjs` maps `opus`/`sonnet` agents to `model: inherit` (preserving the user's selected model such as Gemini 4 Neon instead of pinning `pro`, while keeping `haiku` on `flash`) and forwards agent `skills:` lists into `.agents/agents/*.md`.
+- **More `AGENTS.md` headroom for adopting projects.** Trimmed `CLAUDE.md` so generated `AGENTS.md` drops from 23,005 B to 18,283 B (5.7 KB below Antigravity's 24,000 B truncation limit), and updated the runtime mapping table and `triage-issues` notes for Antigravity tool names (`read_file`, `edit_file`, `write_file`, `curl -fsSL`, `Workspace: "branch"`, `conversationId`).
+- **Replaced deprecated `ephemeralMessage` in `PreInvocation`.** `.claude/scripts/_antigravity-hook.sh` now flushes queued advisory context as `systemMessage` and uses `_json-parser.sh`'s probed `$JSON_PARSER` for `call_mcp_tool` unwrapping.
+
+### Fixed
+- **Antigravity CLI/ACP 1.5+ file hooks now fire.** `.agents/hooks.json` and `_antigravity-hook.sh` now handle both modern CLI/ACP tool names (`write_file`, `edit_file`, `read_file` with `Path`) and legacy IDE names (`write_to_file`, `replace_file_content`, `view_file` with `TargetFile`/`AbsolutePath`), plus top-level `cwd` on `run_command` payloads.
+- **Read-only Antigravity subagents (`explorer`, `architect`, `reviewer`, `ux-reviewer`) can search and fetch again.** Antigravity CLI/ACP 1.5+ drops standalone `find_by_name`, `list_dir`, `grep_search`, and `read_url_content`; those agents now receive sandboxed `run_command` with explicit read-only search/fetch guardrails.
+- **Antigravity hooks work on Windows.** `.agents/hooks.json` now calls `bash ../.claude/scripts/_antigravity-hook.sh` instead of POSIX `$(git rev-parse --show-toplevel)`, which Windows `cmd /c` passed literally and caused hooks to fail open.
+- **Template adoption and sync include `scripts/antigravity-format.mjs`.** Added `scripts/antigravity-format.mjs` to `init-repo`, `update-practices`, `template-sync-and-report.md`, and `instructions.md` so adopting repos no longer hit `ERR_MODULE_NOT_FOUND` on `npm run sync:codex`.
+
 ## [0.29.4] - 2026-11-21
 
 ### Added
@@ -329,7 +348,8 @@ knowing the solution.
 
 Older releases are in [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
-[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.4...HEAD
+[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.30.0...HEAD
+[0.30.0]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.4...v0.30.0
 [0.29.4]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.3...v0.29.4
 [0.29.3]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.2...v0.29.3
 [0.29.1]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.0...v0.29.1

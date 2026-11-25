@@ -66,6 +66,11 @@ The gate is a PreToolUse hook, so it runs **before** your command. It cannot see
 files that the very command it is checking has not written yet — folding the edit
 into `... && git commit` does not satisfy it. Edit and stage first, commit second.
 
+End every agent-authored commit message with a dynamic trailer identifying the active
+agent and model: `Co-Authored-By: {Agent} {Model}` (e.g., `Co-Authored-By: Gemini 4 Neon`,
+`Co-Authored-By: Claude Opus 5.5`, `Co-Authored-By: Codex GPT-6 Sol`). Never hardcode
+another runtime's name.
+
 ## Exemptions
 
 Merge commits, `--amend`, and the initial commit are exempt automatically. For a

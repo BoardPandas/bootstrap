@@ -358,6 +358,60 @@ const cases = [
       write("scripts/agent.mjs", 'spawnSync("claude", ["-p", p, "--tools", "Read", "--permission-mode", "default", "--allowed-tools", "Read"]);\n'),
     expect: /agent\.mjs: restricts claude with --allowed-tools but not --strict-mcp-config\./,
   },
+  {
+    name: "13a. .agents/hooks.json uses POSIX $(...) command substitution",
+    mutate: ({ write }) =>
+      write(
+        ".agents/hooks.json",
+        JSON.stringify({
+          "claude-code-bootstrap": {
+            enabled: true,
+            SessionStart: [
+              { type: "command", command: 'bash "$(git rev-parse --show-toplevel)"/.claude/scripts/_antigravity-hook.sh SessionStart' },
+            ],
+          },
+        }),
+      ),
+    expect: /POSIX command substitution/,
+  },
+  {
+    name: "13b. .agents/hooks.json matches legacy write_to_file without write_file",
+    mutate: ({ write }) =>
+      write(
+        ".agents/hooks.json",
+        JSON.stringify({
+          "claude-code-bootstrap": {
+            enabled: true,
+            PreToolUse: [
+              {
+                matcher: "write_to_file",
+                hooks: [{ type: "command", command: "bash ../.claude/scripts/_antigravity-hook.sh PreToolUse .claude/scripts/gate.sh" }],
+              },
+            ],
+          },
+        }),
+      ),
+    expect: /legacy write_to_file without write_file/,
+  },
+  {
+    name: "13c. .agents/hooks.json matches legacy replace_file_content without edit_file",
+    mutate: ({ write }) =>
+      write(
+        ".agents/hooks.json",
+        JSON.stringify({
+          "claude-code-bootstrap": {
+            enabled: true,
+            PostToolUse: [
+              {
+                matcher: "replace_file_content|multi_replace_file_content",
+                hooks: [{ type: "command", command: "bash ../.claude/scripts/_antigravity-hook.sh PostToolUse .claude/scripts/gate.sh" }],
+              },
+            ],
+          },
+        }),
+      ),
+    expect: /legacy replace_file_content without edit_file/,
+  },
 ];
 
 for (const c of cases) {
@@ -434,4 +488,27 @@ test("a genuinely dead glob is silenced by an exemption", () => {
 test("no check is advisory -- the guard has no warning tier", () => {
   const { out } = run(({ write }) => write("CLAUDE.md", `# F\n\n${"x".repeat(17 * 1024)}\n`));
   assert.doesNotMatch(out, /Warnings \(/, "a budget overrun must fail, not warn");
+});
+
+test("valid cross-platform .agents/hooks.json passes check 13", () => {
+  const { code, out } = run(({ write }) =>
+    write(
+      ".agents/hooks.json",
+      JSON.stringify({
+        "claude-code-bootstrap": {
+          enabled: true,
+          SessionStart: [
+            { type: "command", command: "bash ../.claude/scripts/_antigravity-hook.sh SessionStart .claude/scripts/gate.sh" },
+          ],
+          PreToolUse: [
+            {
+              matcher: "write_file|write_to_file|edit_file|replace_file_content|multi_replace_file_content",
+              hooks: [{ type: "command", command: "bash ../.claude/scripts/_antigravity-hook.sh PreToolUse .claude/scripts/gate.sh" }],
+            },
+          ],
+        },
+      }),
+    ),
+  );
+  assert.equal(code, 0, out);
 });

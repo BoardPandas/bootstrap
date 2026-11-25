@@ -2,46 +2,38 @@
 
 # Project Rules
 
-This repository is a Claude Code starter template. It provides a ready-to-use `.claude/` configuration folder that can be cloned for new projects or copied into existing ones.
+Claude Code starter template providing a ready-to-use `.claude/` config (with generated Codex and Antigravity mirrors).
 
 ## Commands
 
 ```bash
-npm run check:claude   # wiring guard: rule scoping, hook matchers, frontmatter, context budgets, mirror drift
+npm run check:claude   # wiring guard: rule scoping, hook matchers, frontmatter, budgets, mirror drift
 npm run sync:codex     # regenerate AGENTS.md, .agents/, .codex/ after any CLAUDE.md or .claude/ change
-npm test               # asserts every guard check still fires, plus the commit gate's refusal paths
+npm test               # asserts every guard check still fires, plus commit-gate and hook-adapter paths
 ```
 
 ## Verifying your work
 
-A change to this repo is **not done** until both of these are green:
+A change to this repo is **not done** until both are green:
 
 ```bash
 npm run check:claude
 npm test
 ```
 
-Healthy output ends with:
-
-```
-OK -- .claude wiring verified.
-```
-
-and, from `npm test`, `# fail 0`. Never skip, delete, or narrow a failing check to make it
-pass — the checks exist because these defects are otherwise silent. If a check is genuinely
-wrong, change it deliberately and say so in the changelog.
+Healthy output ends with `OK -- .claude wiring verified.` and `# fail 0`. Never skip, delete, or narrow a failing check — checks exist because these defects are otherwise silent. If a check is wrong, change it deliberately and document why in the changelog.
 
 ## Workflow: Plan First, Then Init
 
-1. Run **`/plan-repo`** to choose stack, generate README, create design guardrails.
-2. Say **"initialize repo"** to configure Claude Code using the plan.
-3. Say **"update practices"** periodically to stay current.
+1. **`/plan-repo`** — choose stack, generate README, create design guardrails.
+2. **"initialize repo"** — configure `.claude/` using the plan.
+3. **"update practices"** — stay current periodically.
 
-Skills marked `/command` in the table below set `disable-model-invocation: true`, so a plain-English phrase will not start them -- type the slash command.
+Skills marked `/command` set `disable-model-invocation: true`, so plain-English phrases will not start them.
 
 ## Artifact Chain
 
-Each stage commits an artifact the next stage reads. One artifact, one owner, one approval.
+One artifact, one owner, one approval. Never skip straight to a diff for work larger than one file.
 
 | Artifact | Location | Produced by | Approved by |
 |---|---|---|---|
@@ -49,168 +41,125 @@ Each stage commits an artifact the next stage reads. One artifact, one owner, on
 | `spec.md` | `intent/<slug>/spec.md` | `/spec-developer` | Product owner |
 | `plan.md` | `tasks/<slug>-plan.md` | plan mode / `/spec-developer` | Engineer |
 | diff | git branch | `builder` / session | Code owner, per `REVIEW.md` |
-| lesson | LL-G / BP | `/add-lesson`, `/add-practice` | Authorized GitHub contribution; repository CI |
-
-Intent captures the problem in the originator's own words and needs no engineering
-knowledge. Spec turns it into requirements and design with policy already applied. Plan is
-the implementation order. Never skip straight to a diff for work larger than a single file.
+| lesson | LL-G / BP | `/add-lesson`, `/add-practice` | Authorized GitHub commit; CI |
 
 ## Review Policy
 
-`REVIEW.md` at the repo root defines what review covers, what "Important" means here, the
-nit cap, and what must never be reported. Read it before reviewing anything, and before
-acting on review feedback. It is version-controlled policy, not a suggestion.
+`REVIEW.md` defines passes, what "Important" means, the nit cap, and exclusions. Read it before reviewing or acting on review feedback; it is version-controlled policy.
 
 ## Coding Standards
 
 - Handle errors explicitly -- never swallow exceptions silently.
 - Validate inputs at system boundaries (user input, API responses, file I/O).
-- Avoid premature abstraction. Three similar lines are better than a forced helper.
-- Do not add comments for self-explanatory code. Add comments only when the "why" is non-obvious.
-- Files over 500 lines should be split. Large files consume excessive context.
+- Avoid premature abstraction. Three similar lines beat a forced helper.
+- Comment only non-obvious "why", not self-explanatory code.
+- Split files over 500 lines.
 
 ## Things Claude Gets Wrong
 
-Corrections that have been needed twice. Add to this list when a mistake repeats; move the
-generalisable version to LL-G via `/add-lesson`.
+Corrections needed twice; move generalisable entries to LL-G via `/add-lesson`.
 
-- **Folding the changelog edit into the commit command.** The gate is a `PreToolUse` hook, so it runs *before* the command. `edit && git commit` cannot satisfy it. Stage first, commit second.
-- **Writing `Tool(pattern)` as a hook `matcher:`.** That is permissions syntax; in a matcher it is a regex matching no tool, so the hook silently never runs. Use `matcher: "Bash"` plus `if: "Bash(git *)"` on the handler.
-- **Reaching for `$CLAUDE_FILE_PATH` in a hook.** It does not exist, expands to `""`, and an empty path argument makes most tools walk the entire repo. Parse `tool_input.file_path` from stdin and hard-guard on non-empty.
-- **Selecting a JSON parser with `command -v python3`.** On Windows that finds the WindowsApps stub: the lookup succeeds, every field comes back empty, and the hook quietly does nothing. Probe by running a candidate against a known payload.
-- **Adding a `paths:` glob that matches nothing.** A rule scoped to a path that does not exist never fires and says nothing. `npm run check:claude` fails on it; record deliberate exceptions in `wiring-exemptions.json`.
-- **Using Cursor's `globs:` / `alwaysApply:` in a rule.** Claude Code reads neither. The rule then loads in *every* session — the inverse of the intent.
-- **Assuming a worktree agent sees uncommitted work.** It branches from a commit, so it reads stale files, finds them already consistent, and reports success. Orient with `git status --short` first.
-- **Budgeting context by line count.** A line budget keeps passing while single lines grow to thousands of characters. Budget by bytes.
-- **Echoing advice from a PreToolUse or PostToolUse hook.** Plain stdout there goes to the debug log; Claude never reads it. Print `additionalContext` JSON with `emit_context` from `.claude/scripts/_hook-context.sh`, or exit 2 with stderr to block.
-- **Calling a hook script by a cwd-relative path.** Hooks run in the session's current directory, which follows every `cd`. `bash .claude/scripts/x.sh` fails from any subdirectory, and a non-blocking failure means the gate simply did not run. Write `bash "$CLAUDE_PROJECT_DIR"/.claude/scripts/x.sh`.
+- **Folding changelog edits into the commit command.** `PreToolUse` runs *before* the command (`edit && git commit` cannot satisfy it). Stage first, commit second.
+- **Writing `Tool(pattern)` in hook `matcher:`.** That is permissions syntax and silently matches nothing. Use `matcher: "Bash"` + `if: "Bash(git *)"`.
+- **Using `$CLAUDE_FILE_PATH` in hooks.** Nonexistent; expands to `""` and makes formatters walk the repo. Parse `tool_input.file_path` from stdin and hard-guard non-empty.
+- **Picking a JSON parser via `command -v python3`.** Finds the WindowsApps stub on Windows; probe by running a candidate against a known payload (`_json-parser.sh`).
+- **Dead `paths:` globs.** Match nothing silently; `npm run check:claude` fails unless recorded in `wiring-exemptions.json`.
+- **Cursor `globs:` / `alwaysApply:` in `.claude/rules/`.** Claude Code ignores both, loading the rule in every session.
+- **Assuming worktree agents see uncommitted work.** Branching from a commit hides uncommitted edits; orient with `git status --short` first.
+- **Line-count context budgets.** Gamed by long lines; budget by bytes (`wc -c`).
+- **Echoing advice from PreToolUse/PostToolUse hooks.** Plain stdout goes to the debug log; emit `additionalContext` JSON via `emit_context` (`.claude/scripts/_hook-context.sh`), or exit 2 + stderr to block.
+- **Cwd-relative hook paths.** Hooks follow `cd`; write `bash "$CLAUDE_PROJECT_DIR"/.claude/scripts/x.sh` (or `bash ../.claude/scripts/_antigravity-hook.sh` in `.agents/hooks.json` for Unix + Windows `cmd /c`).
 
 ## Hierarchical CLAUDE.md Architecture
 
-CLAUDE.md files load top-down: root user level, then project level, then subfolder level. Only relevant files load -- a frontend task never loads the backend CLAUDE.md.
+Loads top-down: user -> project root -> subfolder.
 
-- Root `CLAUDE.md` — Project-wide rules, stack, global conventions (this file).
-- Subfolder `CLAUDE.md` — Only when a subfolder has distinct conventions.
-- `.claude/rules/*.md` — Conditional instructions with `paths:` frontmatter. `paths:` is the only scoping key Claude Code reads, and a rule with no `paths:` loads in **every** session.
-- Nested `.claude/` directories are first-class: `subdir/.claude/skills|agents|workflows/` load automatically; the closest one wins on name collision (disambiguated as `<dir>:<name>`).
-- Keep each file focused. Prune after every model update -- remove what the model handles natively.
-- Do NOT bloat CLAUDE.md with generic advice the model already knows.
+- Root `CLAUDE.md` — project-wide rules, stack, global conventions.
+- `.claude/rules/*.md` — conditional rules with `paths:` frontmatter (omitting `paths:` loads **every** session). Prefer `.claude/rules/*.md` over subfolder `CLAUDE.md` when targeting Antigravity, because Antigravity does not load subfolder rules below the workspace root.
+- Nested `.claude/` directories (`subdir/.claude/skills|agents|workflows/`) load automatically; closest wins (`<dir>:<name>`).
+- Prune after model updates; do not bloat with generic advice.
 
 ## Subagent Usage
 
-Always and aggressively offload to subagents: online research, doc fetching, log analysis, codebase exploration. This keeps the main context narrow.
+Offload online research, doc fetching, log analysis, and codebase exploration to subagents to keep main context narrow.
 
-- **Always include a "why"** in every subagent prompt. "How auth works for rate limiting because we're improving rate limiting" beats "how auth works."
-- **Parallel exploration:** When torn between approaches, spin up parallel `explorer` subagents for each (not the built-in `Explore`, which loads every MCP tool schema), pass results back, let the main session decide.
-- **Subagents are resumable**, run in the background by default, and can nest up to 5 levels deep.
+- **Include a "why"** in every subagent prompt.
+- **Parallel exploration:** Spin up parallel custom `explorer` subagents (not built-in `Explore`, which loads every MCP schema).
+- Subagents are resumable, run in the background by default, and nest up to 5 levels deep.
 
 ## Frontmatter
 
-The full catalog of skill and agent frontmatter fields lives in `instructions.md` (Skill Frontmatter, Adding New Agents). Three rules are enforced, not advisory:
+Full catalog in `instructions.md`. Three enforced rules (`npm run check:claude`):
 
-- **Every skill must resolve to a model:** declare `model:` directly, **or** bind `agent:` alongside `context: fork` and inherit that agent's (without the fork, `agent:` is ignored). Doing neither leaves the skill on whatever the session happens to be using; `npm run check:claude` fails on it.
-- **All frontmatter keys are hyphenated.** The underscored form (`disable_model_invocation`, `allowed_tools`) is silently ignored.
-- **A forked skill gets its agent's tools, not its own.** `allowed-tools` only pre-approves, so each entry must be in the bound agent's `tools:`, or that step never runs.
+- **Model resolution:** declare `model:` directly, or bind `agent:` alongside `context: fork` (without the fork, `agent:` is ignored).
+- **Hyphenated keys only:** underscored forms (`disable_model_invocation`, `allowed_tools`) are silently ignored.
+- **Forked skill tools:** `allowed-tools` only pre-approves; every entry must be in the bound agent's `tools:`.
 
 ## Infrastructure Profiles
 
-Anything server-side deploys onto one of two profiles, picked whole rather than mixed:
-**Cloudflare** or **Railway**. Fixed on both: Cloudflare R2, Resend, Better Auth. Plan-repo
-researches the two and recommends one; a local-only desktop project gets neither. Full
-profile definitions in `.claude/references/infrastructure.md` -- read it, do not edit it.
+Server-side projects deploy whole onto **Cloudflare** or **Railway** (fixed on both: Cloudflare R2, Resend, Better Auth); local-only desktop apps get neither. Full specs in `.claude/references/infrastructure.md` (read-only).
 
 ## File Organization
 
-- Keep the `.claude/` folder self-contained. No absolute paths, no references outside the repo except CLAUDE.md, AGENTS.md, README.md, REVIEW.md, and instructions.md.
-- Skills live in `.claude/skills/<skill-name>/SKILL.md`; agents in `.claude/agents/<agent-name>.md`.
-- Hook scripts live in `.claude/scripts/*.sh`. settings.json calls them as `"$CLAUDE_PROJECT_DIR"/.claude/scripts/…` so they resolve from any subdirectory, and the scripts folder must travel with settings.json.
-- Path-scoped rules live in `.claude/rules/*.md` (conditional on `paths:` frontmatter).
-- Agent memory lives in `.claude/agent-memory/` (version-controlled, team-shared).
-- Intent and spec artifacts live in `intent/<slug>/`; plans in `tasks/`.
-- Source URLs for best-practice fetches live in `.claude/references/source-urls.md`.
-- Template sync state lives in `.claude/references/template-sync-state.json`, deliberate removals in `template-sync-ignore.md`.
-- Codex and Antigravity read generated mirrors: `AGENTS.md`, `.agents/`, `.codex/`, built by `scripts/sync-codex.mjs`. Never hand-edit them; see `.agents/README.md` and `.codex/README.md`.
-- The wiring guard is `scripts/check-claude-wiring.mjs`. Every check is an error -- there is no warning tier, because an advisory check is read once and never again. Intentionally-dead globs are recorded with a reason in `.claude/references/wiring-exemptions.json`; a stale exemption fails the guard. `npm test` asserts each check still fires.
-- Infrastructure profiles: `.claude/references/infrastructure.md`. CLI tools: `.claude/references/tools.md`. Design guardrails (UI projects, generated by plan-repo): `.claude/references/design-guardrails.md`.
-- Project settings go in `.claude/settings.json`. Personal overrides go in `.claude/settings.local.json` (git-ignored). Org-mandated policy goes in managed settings -- see `.claude/references/managed-settings.example.json`.
+- Keep `.claude/` self-contained (no external refs except `CLAUDE.md`, `AGENTS.md`, `README.md`, `REVIEW.md`, `instructions.md`).
+- Skills: `.claude/skills/<name>/SKILL.md`; agents: `.claude/agents/<name>.md`; rules: `.claude/rules/*.md`; hook scripts: `.claude/scripts/*.sh`; memory: `.claude/agent-memory/`.
+- Intents/specs: `intent/<slug>/`; plans: `tasks/`.
+- References: `source-urls.md`, `infrastructure.md`, `tools.md`, `design-guardrails.md`, `template-sync-state.json`, `template-sync-ignore.md`, `wiring-exemptions.json`, `managed-settings.example.json`.
+- Mirrors: `AGENTS.md`, `.agents/`, `.codex/` are generated by `scripts/sync-codex.mjs` (+ `sync-antigravity.mjs` / `antigravity-format.mjs`). Never hand-edit; see `.agents/README.md` and `.codex/README.md`.
+- Wiring guard: `scripts/check-claude-wiring.mjs` (every check is an error; stale exemptions fail; tested by `npm test`).
+- Settings: `.claude/settings.json` (project), `.claude/settings.local.json` (git-ignored personal overrides).
 
 ## Hooks and Settings
 
-**Read `.claude/references/hooks-and-settings.md` before editing hooks or settings.** It is the canonical catalog: all 30 hook events, every optional settings key, and the gotchas. Do not work from memory -- several keys are silently ignored when misspelled. Hook types: `command`, `http`, `prompt`, `agent`, `mcp_tool`. The `matcher:` gotcha is in "Things Claude Gets Wrong" above.
+**Read `.claude/references/hooks-and-settings.md` before editing hooks or settings.** Canonical catalog of all 30 hook events, optional settings keys, and gotchas. Hook types: `command`, `http`, `prompt`, `agent`, `mcp_tool`.
 
 ## Planning
 
-- Planning is **phase-based**, not timeline-based. Phases: Foundation, Core, Polish, Ship.
-- Always plan in one session, execute in another. Clear context between planning and implementation.
-- Save every plan to `tasks/`. This lets you selectively undo a feature later.
-- For big features, use the **spec-developer** skill.
-- Every plan MUST end with a **Lessons Learned / Gotchas** section. After implementation, route discoveries to LL-G via `/add-lesson` -- not to local debugging.md files -- and add a check to `scripts/check-claude-wiring.mjs` when the lesson concerns this configuration and the defect is statically detectable.
+- Phase-based only (Foundation, Core, Polish, Ship) — never timelines.
+- Plan in one session, execute in another; save plans to `tasks/`; use `/spec-developer` for multi-file features.
+- Every plan ends with **Lessons Learned / Gotchas**. After implementation, route discoveries to LL-G via `/add-lesson` and add a check to `scripts/check-claude-wiring.mjs` when statically detectable.
 
 ## Context Management
 
-- Keep this file under 16 KB and all always-on context under 20 KB (`wc -c`). Budget by bytes, not lines. `npm run check:claude` fails the build on either ceiling; raise the constants deliberately rather than drifting into them.
-- Break tasks small enough to complete in under 50% context usage.
-- Use `/compact` proactively around 50% context.
-- Start fresh conversations for unrelated topics.
-- Begin complex tasks in plan mode before implementation.
-- **Preserve the prompt cache:** Lock the MCP/tool list and model at session start. Adding tools or switching models mid-session invalidates the cached prefix and inflates cost.
-- **Code bias fix:** If stuck in bad patterns, build the feature in isolation in a fresh folder, then port it in.
-- **Document failed attempts:** Write failed fixes to `.claude/agent-memory/debugging.md` before starting new sessions.
-- **Handoff docs:** Use `/handoff` to create a summary before ending a session.
+- Keep `CLAUDE.md` under 16 KB and always-on context under 20 KB (`wc -c`); `npm run check:claude` enforces both, and `sync:codex` caps `AGENTS.md` at 24,000 B for Antigravity.
+- Keep tasks under 50% context; use `/compact` proactively and fresh sessions for unrelated topics.
+- **Preserve prompt cache:** lock MCP/tools and model at session start.
+- **Code bias fix:** if stuck, prototype isolated in a fresh folder then port in.
+- Write failed attempts to `.claude/agent-memory/debugging.md`; use `/handoff` before ending a session.
 
 ## Date Awareness
 
-Best practices must reflect the current date. Always check the current date -- do not assume. When fetching best practices, verify versions and recommendations are current as of today.
+Check today's date before fetching best practices or recommending versions.
 
 ## Available Skills and Agents
 
-Skills are auto-discovered from `.claude/skills/`; their own `description:` fields are what
-trigger them, so they are not re-listed here. The full tables live in `README.md` and
-`instructions.md`, and the agent registry in
-`.claude/references/agent-registry.md`.
+Skills auto-discover from `.claude/skills/`; full tables in `README.md`, `instructions.md`, and `.claude/references/agent-registry.md`.
 
-Two things the descriptions do not tell you:
-
-- These set `disable-model-invocation: true` and start **only** by slash command:
-  `/capture-intent`, `/plan-repo`, `/spec-developer`, `/mermaid-diagram`, `/merge-worktrees`,
-  `/triage-issues`. A plain-English phrase will not start them.
-- The pipeline order is `/capture-intent` → `/plan-repo` → "initialize repo" →
-  `/spec-developer` → build → "update practices".
+- Slash-only (`disable-model-invocation: true`): `/capture-intent`, `/plan-repo`, `/spec-developer`, `/mermaid-diagram`, `/merge-worktrees`, `/triage-issues`.
+- Pipeline: `/capture-intent` -> `/plan-repo` -> "initialize repo" -> `/spec-developer` -> build -> "update practices".
 
 ## Workflow
 
-1. Use the source URL registry at `.claude/references/source-urls.md` when fetching best practices -- never hardcode URLs in skills.
-2. Check `.claude/references/tools.md` for available CLI tools before running commands. Offer to install missing tools.
+1. Read URLs from `.claude/references/source-urls.md` -- never hardcode URLs in skills.
+2. Check `.claude/references/tools.md` before running CLI tools; offer to install missing ones.
 
 ## RULE 0: Read-Only First (MANDATORY)
 
 **Gather information before taking action. Read-only commands first. Modifications only with user approval.**
 
 - Always safe: diagnostics and read-only operations (`Get-*`, `Test-*`, queries, list/read API calls).
-- Requires user approval: state-changing commands (`Set-*`, `Remove-*`, `Stop-*`, writes to shared systems).
-- Never without explicit request: destructive operations (recursive deletions, credential resets, formatting).
-
-Production systems (M365 tenants, shared infrastructure) face hard-to-reverse damage from accidental modifications. Validate intent before any state change. (From BP `safety/read-only-first-rule`.)
+- Requires approval: state-changing commands (`Set-*`, `Remove-*`, `Stop-*`, writes to shared systems).
+- Never without explicit request: destructive operations (recursive deletes, credential resets, formatting). (BP `safety/read-only-first-rule`.)
 
 ## RULE 1 -- Check LL-G Before Scripting (MANDATORY)
 
-**At the start of any session involving scripting, API calls, or automation -- before writing a single line -- fetch `https://raw.githubusercontent.com/BoardPandas/LL-G/main/llms.txt`, then `kb/<tech>/llms.txt` for each technology you will use. Read ALL HIGH-severity entries, plus any MEDIUM entry matching your task.**
+**Before writing scripts, API calls, or automation, fetch `https://raw.githubusercontent.com/BoardPandas/LL-G/main/llms.txt`, then `kb/<tech>/llms.txt` for each technology used. Read ALL HIGH-severity entries plus matching MEDIUM entries.**
 
-Technologies currently in LL-G: **claude-code**, PowerShell, Graph API, NinjaOne, Next.js, Tailwind CSS, TypeScript, Godot/GDScript, Better Auth, Bash.
-
-Work touching `.claude/` itself loads `kb/claude-code/` -- it documents this configuration's silent-failure modes (dead hook matchers, ignored frontmatter keys, blocking hooks with no stderr).
-
-This applies to every session, every technician, every developer. Not optional. Full procedure in `.claude/rules/llg-check.md`.
-
-### Contributing back
-
-After implementation, route new discoveries to LL-G, not to local agent-memory alone: run `/add-lesson` (publishes an atomic GitHub commit with `gh`). Lessons stored locally stay local.
+Includes `kb/claude-code/` and `kb/antigravity-cli/` for config/hook work. Full procedure in `.claude/rules/llg-check.md`. Route new discoveries back via `/add-lesson` (atomic GitHub commit with `gh`).
 
 ## RULE 3 -- Check BP Before Starting New Work
 
-**When onboarding a repo, starting a new feature, or setting up tooling -- fetch `https://raw.githubusercontent.com/BoardPandas/BP/main/llms.txt`, then `practices/<concern>/llms.txt` for each relevant concern. Load ALL FOUNDATIONAL entries, plus RECOMMENDED entries whose tech tags match this project.**
-
-BP is the complement to LL-G: where LL-G tracks what NOT to do, BP tracks what TO do. Use `/add-dir C:\Github\BP` to bring BP into context locally. Full procedure in `.claude/rules/bp-check.md`.
+**When onboarding a repo, starting a feature, or setting up tooling, fetch `https://raw.githubusercontent.com/BoardPandas/BP/main/llms.txt`, then `practices/<concern>/llms.txt`. Load ALL FOUNDATIONAL entries plus matching RECOMMENDED entries.** Full procedure in `.claude/rules/bp-check.md`.
 
 ---
 
@@ -226,10 +175,10 @@ was written for Claude Code; read it through this mapping.
 | `.claude/agents/<name>.md` | `.codex/agents/<name>.toml` | `.agents/agents/<name>.md` |
 | `.claude/settings.json` hooks | `.codex/hooks.json` | `.agents/hooks.json` (`_antigravity-hook.sh`) |
 | `.claude/rules/*.md` | inlined or indexed below | `.agents/rules/*.md` (`glob`) + always-on below |
-| Read / Glob / Grep | shell reads and `rg` | `view_file` / `find_by_name`, `list_dir` / `grep_search` |
-| Edit / Write / Bash | `apply_patch` / `Bash` | `replace_file_content` / `write_to_file` / `run_command` |
-| WebFetch / WebSearch | web tools | `read_url_content` / `search_web` |
-| Agent / Task, `SendMessage` | spawn / message a subagent | `invoke_subagent`, `send_message` |
+| Read / Glob / Grep | shell reads and `rg` | `read_file` (`view_file` IDE) / `rg`, `find`, `ls` via `run_command` |
+| Edit / Write / Bash | `apply_patch` / `Bash` | `edit_file` / `write_file` (`replace_file_content` / `write_to_file` IDE) / `run_command` |
+| WebFetch / WebSearch | web tools | `curl -fsSL` via `run_command` (`read_url_content` IDE) / `search_web` |
+| Agent / Task, `SendMessage` | spawn / message a subagent | `invoke_subagent` (`Workspace: "branch"`), `send_message` (by `conversationId`) |
 | AskUserQuestion / Plan mode | ask in chat / save plans to `tasks/` | `ask_question` / save plans to `tasks/` |
 
 `AGENTS.md`, `.agents/`, and `.codex/` are generated. Never hand-edit them: change
@@ -240,7 +189,7 @@ Explicit-only skills (never start them implicitly): `$capture-intent`, `$merge-w
 
 ### Denied paths and commands
 
-Claude Code enforces these; Codex and Antigravity do not, so treat them as hard rules.
+Claude Code enforces these natively and Antigravity mirrors them via `.agents/hooks.json` (`--enforce-deny`); Codex does not, so treat them as hard rules.
 
 - Never read: `**/.env`, `**/.env.*`, `**/*.pem`, `**/*.key`, `**/*.p12`, `**/*.pfx`, `~/.gnupg/**`, `~/.ssh/**`, `~/.aws/**`, `~/.azure/**`, `~/.kube/**`, `~/.docker/config.json`, `~/.npmrc`, `~/.git-credentials`, `~/.config/gh/**`
 - Never edit: `~/.bashrc`, `~/.zshrc`, `~/.profile`, `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `**/*.min.js`, `**/*.lock`, `**/package-lock.json`, `**/pnpm-lock.yaml`, `**/yarn.lock`, `**/.git/**`
@@ -253,12 +202,12 @@ Claude Code enforces these; Codex and Antigravity do not, so treat them as hard 
 - PostToolUse [Write|Edit]: bash "$CLAUDE_PROJECT_DIR"/.claude/scripts/post-edit-format.sh -- Codex edits arrive as apply_patch, which this script does not parse.
 - Stop/Notification terminal bell -- replaced by [tui] notifications in .codex/config.toml.
 
-Antigravity mirrors Write/Edit hooks (`pre-write-kb-check.sh`, `post-edit-format.sh`) via `TargetFile`
-and delivers advisory context on `PreInvocation`, but neither Codex nor Antigravity hooks `EnterPlanMode`.
+Antigravity mirrors Write/Edit hooks (`write_file`/`edit_file` and legacy IDE names) via `Path`/`TargetFile`
+and delivers queued advisory context on `PreInvocation` (`systemMessage`), but neither Codex nor Antigravity hooks `EnterPlanMode`.
 
 ### Path-scoped rules
 
-Antigravity loads `.agents/rules/*.md` by glob; in Codex, read a matching rule before editing:
+Antigravity loads `.agents/rules/*.md` by glob (it never loads subfolder `CLAUDE.md`/`AGENTS.md` below the workspace root -- use `.claude/rules/*.md` instead); in Codex, read a matching rule before editing:
 
 - `.claude/rules/bp-check.md` -- Enforce BP best practices check before starting new work. Paths: `CLAUDE.md`, `.claude/**`, `.github/**`, `package.json`, `Dockerfile*`, `docker-compose*`, `biome.*`, `turbo.json`, `pnpm-workspace.yaml`, `vitest.config.*`, `playwright.config.*`, `jest.config.*`
 - `.claude/rules/llg-check.md` -- Enforce LL-G knowledge base check before writing code. Paths: `.claude/**`, `scripts/**`, `src/**`, `lib/**`, `app/**`, `worker/**`, `api/**`, `middleware.*`
@@ -330,6 +279,11 @@ git add CHANGELOG.md package.json
 The gate is a PreToolUse hook, so it runs **before** your command. It cannot see
 files that the very command it is checking has not written yet — folding the edit
 into `... && git commit` does not satisfy it. Edit and stage first, commit second.
+
+End every agent-authored commit message with a dynamic trailer identifying the active
+agent and model: `Co-Authored-By: {Agent} {Model}` (e.g., `Co-Authored-By: Gemini 4 Neon`,
+`Co-Authored-By: Claude Opus 5.5`, `Co-Authored-By: Codex GPT-6 Sol`). Never hardcode
+another runtime's name.
 
 ##### Exemptions
 

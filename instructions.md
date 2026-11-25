@@ -5,7 +5,7 @@
 This repository provides a pre-configured `.claude/` folder that gives Claude Code a set of skills, agents, and settings aligned with current best practices. It works in two modes:
 
 1. **Clone for new projects** -- Start a new repo with Claude Code already configured. `node scripts/new-project.mjs` (or, for a repo made with GitHub's "Use this template", the `template-cleanup` workflow) resets `CHANGELOG.md` and `package.json` to a fresh `0.0.1` so the project does not inherit the template's release history.
-2. **Copy into existing projects** -- Drop the `.claude/` folder (plus CLAUDE.md) into any existing repo to add Claude Code capabilities. Add `scripts/sync-codex.mjs` + `scripts/sync-antigravity.mjs` and run `npm run sync:codex` to give Codex and Antigravity the same configuration.
+2. **Copy into existing projects** -- Drop the `.claude/` folder (plus CLAUDE.md) into any existing repo to add Claude Code capabilities. Add `scripts/sync-codex.mjs`, `scripts/sync-antigravity.mjs`, and `scripts/antigravity-format.mjs` and run `npm run sync:codex` (or `npm run sync:agents`) to give Codex and Antigravity the same configuration.
 
 ## Folder Structure
 
@@ -72,7 +72,8 @@ README.md                  # GitHub-facing README
 scripts/
   check-claude-wiring.mjs  # Wiring guard (npm run check:claude)
   sync-codex.mjs           # Codex & Antigravity mirror generator (npm run sync:codex; --check runs in check:claude)
-  sync-antigravity.mjs     # Antigravity (.agents/) emitter imported by sync-codex.mjs
+  sync-antigravity.mjs     # Antigravity (.agents/) CLI + re-exports imported by sync-codex.mjs
+  antigravity-format.mjs   # Pure Antigravity schema mappings and renderers imported by sync-antigravity.mjs
   new-project.mjs          # One-shot reset of CHANGELOG.md + package.json to 0.0.1 in a new project; deletes itself
   *.test.mjs               # Self-tests asserting each check still fires
 intent/<slug>/             # intent.md + spec.md (created on first use)
