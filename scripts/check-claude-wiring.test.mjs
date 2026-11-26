@@ -132,6 +132,12 @@ const cases = [
     expect: /listed more than once/,
   },
   {
+    name: "3e. boolean attribution.commit drops the whole settings file",
+    mutate: ({ write }) =>
+      write(".claude/settings.json", JSON.stringify({ attribution: { commit: true, pr: "" } })),
+    expect: /attribution\.commit is true/,
+  },
+  {
     name: "3. hook matcher using permissions syntax",
     mutate: ({ write }) =>
       write(
@@ -421,6 +427,13 @@ for (const c of cases) {
     assert.match(out, c.expect, `guard failed, but not for the expected reason:\n${out}`);
   });
 }
+
+test("string attribution values pass check 3e", () => {
+  const { code, out } = run(({ write }) =>
+    write(".claude/settings.json", JSON.stringify({ attribution: { commit: "", pr: "Made with Claude" } })),
+  );
+  assert.equal(code, 0, `string attribution should pass:\n${out}`);
+});
 
 // Exact-name lists, comma lists, hyphenated agent types, match-all and real
 // regexes are all valid matchers; check 3 must not tax any of them.

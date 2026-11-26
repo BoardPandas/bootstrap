@@ -276,6 +276,22 @@ if (existsSync(SETTINGS)) {
       }
     }
 
+    // 3e. attribution.commit / attribution.pr are strings (the text to append; "" hides it).
+    // A boolean fails schema validation, and Claude Code then drops the WHOLE settings file:
+    // every hook, permission rule and sandbox setting is off, behind one startup warning.
+    const attribution = settings.attribution;
+    if (attribution && typeof attribution === "object") {
+      for (const key of ["commit", "pr"]) {
+        if (key in attribution && typeof attribution[key] !== "string") {
+          errors.push(
+            `.claude/settings.json: attribution.${key} is ${JSON.stringify(attribution[key])}, but Claude Code ` +
+              `expects a string, and an invalid value makes it skip this entire file (hooks and permissions ` +
+              `included). Remove the key for the default attribution, or set "" to hide it.`,
+          );
+        }
+      }
+    }
+
     // 5. Silencing stderr AND the exit code makes every future breakage unfalsifiable.
     if (/2>\/dev\/null[^"']*\|\|\s*true/.test(raw)) {
       errors.push(

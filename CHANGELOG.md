@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-11-26
+
+### Fixed
+- **Boolean `attribution.commit` / `attribution.pr` no longer pass silently.** Claude Code types both as strings; a `true` fails schema validation and Claude Code drops the entire `.claude/settings.json`, so every hook, permission rule and sandbox setting is off. `.claude/references/hooks-and-settings.md` described them as on/off toggles, which is how an adopting repo (Broadside) ended up with `true`. The reference now documents the string form (omit for the default, `""` to hide), and the wiring guard (check 3e) rejects a non-string value.
+
 ## [0.30.0] - 2026-11-25
 
 ### Added
@@ -348,7 +353,8 @@ knowing the solution.
 
 Older releases are in [CHANGELOG-archive.md](CHANGELOG-archive.md).
 
-[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.30.0...HEAD
+[Unreleased]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.30.1...HEAD
+[0.30.1]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.30.0...v0.30.1
 [0.30.0]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.4...v0.30.0
 [0.29.4]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.3...v0.29.4
 [0.29.3]: https://github.com/BoardPandas/claude-code-bootstrap/compare/v0.29.2...v0.29.3
